@@ -17,7 +17,6 @@ INCLUDE_DIR=include
 PREFIX=$(HOME)/.local
 
 PROJECT=numbers
-SRCS=$(SRC_DIR)/*.cc
 
 NBLIC=https://raw.githubusercontent.com/martinus/nanobench/v4.3.0/LICENSE
 NB=https://raw.githubusercontent.com/martinus/nanobench/v4.3.0/src/include/nanobench.h
