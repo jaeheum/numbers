@@ -63,6 +63,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <cassert>
 #include <chrono>
 #include <climits>
+#include <cmath>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
@@ -116,11 +117,11 @@ int main(int, char* argv[]) {
   std::signal(SIGINT, deleteme);
   std::atexit(deleteme_atexit);
 
-  std::ostream* outstream = nullptr;
+  std::ostream* outstream = &std::cout;;
   argh::parser cmdline(argv);
-  if (cmdline[{"-v", "--verbose"}]) {
+  if (cmdline[{"-c", "--concise"}]) {
     // print nanobench table output by setting bench.output(outstream)
-    outstream = &std::cout;
+    outstream = nullptr;
   }
   if (cmdline[{"-h", "--help"}]) {
     // XXX reorg the code as a table of Bench/{code, param, docstring}?
@@ -143,9 +144,8 @@ int main(int, char* argv[]) {
     ::printf("\n");
     ::printf("numbers [-h|--help] prints this help and quits.\n");
     ::printf(
-        "numbers [-v|--verbose] prints nanobench table of various metrics as "
-        "well.\n");
-    return EXIT_SUCCESS;
+        "numbers [-c|--concise] silences nanobench table of various metrics.\n");
+        return EXIT_SUCCESS;
   }
 
   ankerl::nanobench::Bench mutex_access;
@@ -319,7 +319,9 @@ int main(int, char* argv[]) {
            latency(L3_random_access, L3_cache_size / sizeof(intptr_t*)));
   ::printf(fmt, S(memory_random_access),
            latency(memory_random_access, multiples_of_L3 / sizeof(intptr_t*)));
-  ::printf(fmt, S(branch_miss_penalty), penalty);
+  if (!std::isinf(penalty) && !std::isnan(penalty)) {
+    ::printf(fmt, S(branch_miss_penalty), penalty);
+  }
   ::printf(fmt, S(mutex_access), latency(mutex_access, 1UL));
   ::printf(fmt, S(fseek_from_disk),
            latency(fseek_from_disk, fs::file_size(p) / MiB));
