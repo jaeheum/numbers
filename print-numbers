@@ -1,0 +1,65 @@
+#!/bin/sh
+# XXX lots of linuxism, despite being a supposedly posix script...
+# XXX this shell script (like most of scripts) is too verbose...
+
+# XXX https://github.com/koalaman/shellcheck/wiki/SC2059
+p2() { printf "$@" >&2; }
+bold=$(tput smso)
+offbold=$(tput rmso)
+p2 "${bold}%s runs numbers to print latency numbers.${offbold}\n" "$0"
+p2 "it can take 10 or 20 seconds depending on memory size.\n"
+p2 "%s checks if ./build/numbers is present, else make all to build it.\n" "$0"
+if [ ! -x "${PWD}"/build/numbers ]; then
+  make all
+fi
+# XXX check if numbers is installed by make install in ~/.local/bin or /u/l/b.
+numbers="${PWD}/build/numbers"
+p2 "${bold}enter 'q' to quit; enter 'h' to print help/quit;"
+p2 " enter any key to run numbers:${offbold} "
+read -r x
+case "$x" in
+q) exit ;;
+h) "${numbers}" -h ;;
+*)
+  p2 "%s will carry out following 6 steps to print latency numbers\n" "$0" >&2
+  p2 "1. select a random cpu core\n"
+  p2 "2. set the core scaling_governor to performance mode\n"
+  p2 "3. modprobe msr if msr is not yet loaded\n"
+  p2 "4. run pyperf system tune to prepare the machine\n"
+  p2 "5. run numbers\n"
+  p2 "6. reset the core back to the original mode and exit.\n"
+  p2 "n.b. sudo is required for steps 2, 3, 4 and 6.\n"
+  p2 "n.b. most likely you will need to enter password to sudo only once.\n"
+  p2 "${bold}enter 'y' to proceed; enter any other key to quit:${offbold} "
+  read -r y
+  case "$y" in
+  y)
+    p2 "\n\n"
+    cpuid=$(($$ % $(nproc)))
+    p2 "%s: 1. selecting a random cpu core: ${cpuid}\n" "$0"
+    p2 "%s: 2. set the core scaling_governor to performance mode\n" "$0"
+    sg=/sys/devices/system/cpu/cpu"${cpuid}"/cpufreq/scaling_governor
+    orig_governor=$(cat "${sg}")
+    # echo "performance" | sudo tee "${sg}"
+    sudo cpupower -c "${cpuid}" frequency-set -g "performance"
+    p2 "%s: 3. running modprobe msr if msr is not yet loaded\n" "$0"
+    lsmod | grep -w msr || sudo modprobe msr
+    p2 "%s: 4. running pyperf system tune to prepare the machine (if installed)\n" "$0"
+    which pyperf && sudo pyperf system tune
+    p2 "\n"
+    p2 "%s: 5. running numbers (will take several seconds)\n" "$0"
+    taskset -c "${cpuid}" "${numbers}"
+    p2 "\n"
+    p2 "%s: 6. resetting the core back to the original mode and exiting\n" "$0"
+    # echo "${orig_governor}" | sudo tee "${sg}"
+    sudo cpupower -c "${cpuid}" frequency-set -g "${orig_governor}"
+    p2 "${bold}exiting.${offbold}\n"
+    exit
+    ;;
+  *)
+    p2 "${bold}exiting.${offbold}\n"
+    exit 1
+    ;;
+  esac
+  ;;
+esac

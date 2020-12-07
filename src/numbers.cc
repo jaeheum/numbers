@@ -117,7 +117,8 @@ int main(int, char* argv[]) {
   std::signal(SIGINT, deleteme);
   std::atexit(deleteme_atexit);
 
-  std::ostream* outstream = &std::cout;;
+  std::ostream* outstream = &std::cout;
+  ;
   argh::parser cmdline(argv);
   if (cmdline[{"-c", "--concise"}]) {
     // print nanobench table output by setting bench.output(outstream)
@@ -144,8 +145,11 @@ int main(int, char* argv[]) {
     ::printf("\n");
     ::printf("numbers [-h|--help] prints this help and quits.\n");
     ::printf(
-        "numbers [-c|--concise] silences nanobench table of various metrics.\n");
-        return EXIT_SUCCESS;
+        "numbers [-c|--concise] silences nanobench table of various "
+        "metrics.\n");
+    ::printf("\nFor more details, read ../notes.md or");
+    ::printf(" https://github.com/jaeheum/numbers/blob/main/notes.md\n");
+    return EXIT_SUCCESS;
   }
 
   ankerl::nanobench::Bench mutex_access;
@@ -310,7 +314,8 @@ int main(int, char* argv[]) {
   auto penalty = (unsorted_latency - sorted_latency) /
                  (unsorted_branchmisses - sorted_branchmisses);
 
-  static const char fmt[] = "%s %.1f\n";
+  if (!cmdline[{"-c", "--concise"}]) { ::printf("\n"); }
+  static const char fmt[] = "%-30s %10.1f\n";
   ::printf(fmt, S(L1_random_access),
            latency(L1_random_access, L1_cache_size / sizeof(intptr_t*)));
   ::printf(fmt, S(L2_random_access),

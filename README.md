@@ -11,36 +11,42 @@
 `numbers` is fast & cheap, but it doesn't pretend to be good.
 It is merely adequate.
 
-## sample output
-
 ```
-$ make all
-$ ./build/numbers
+$ git clone https://github.com/jaeheum/numbers.git
+$ cd numbers
+# a quick-and-dirty run:
+$ make all && ./build/numbers
+# or a bit less quick-and-dirty run:
+$ make all && ./print-numbers
+
+...
 
 |               ns/op |                op/s |    err% |          ins/op |          cyc/op |    IPC |         bra/op |   miss% |     total | benchmark
 |--------------------:|--------------------:|--------:|----------------:|----------------:|-------:|---------------:|--------:|----------:|:----------
-|               16.50 |       60,606,060.61 |    0.0% |           63.01 |           56.10 |  1.123 |          18.00 |    0.0% |      0.00 | `mutex_access`
-|            5,030.00 |          198,807.16 |    0.4% |       12,301.00 |       17,090.67 |  0.720 |       4,097.00 |    0.0% |      0.00 | `L1_random_access`
-|          169,462.00 |            5,901.03 |    0.7% |       98,329.00 |      575,994.00 |  0.171 |      32,769.00 |    0.0% |      0.00 | `L2_random_access`
-|       48,964,651.00 |               20.42 |    2.0% |    5,898,280.00 |  166,196,148.00 |  0.035 |   1,966,096.00 |    0.0% |      0.57 | `L3_random_access`
-|    2,874,078,414.00 |                0.35 |    0.0% |  100,664,198.00 |9,754,137,498.00 |  0.010 |  33,555,310.00 |    0.0% |      2.87 | `memory_random_access`
-|        8,781,445.00 |              113.88 |    0.8% |  110,100,499.00 |   29,623,078.00 |  3.717 |  31,457,284.00 |    0.0% |      0.10 | `sorted_memory_branch_mispredictions`
-|       59,044,773.00 |               16.94 |    0.0% |  110,100,514.00 |  200,397,836.00 |  0.549 |  31,457,299.00 |   25.0% |      0.65 | `unsorted_memory_branch_mispredictions`
-|       28,137,126.00 |               35.54 |    0.1% |       23,983.00 |   95,381,152.00 |  0.000 |       4,963.00 |    0.2% |      0.31 | `memory_copy_1MiB`
-|      156,369,464.00 |                6.40 |    0.0% |        4,350.00 |       53,074.00 |  0.082 |         796.00 |   18.0% |      0.16 | `fwrite_1MiB_to_disk`
-|          390,423.00 |            2,561.32 |    0.0% |       81,101.00 |       78,200.00 |  1.037 |      18,564.00 |    0.5% |      0.00 | `fseek_from_disk`
-|       35,041,168.00 |               28.54 |    0.0% |       67,884.00 |      413,712.00 |  0.164 |      15,174.00 |    2.4% |      0.04 | `fread_1MiB_from_disk`
-L1_random_access 1.2
-L2_random_access 5.2
-L3_random_access 24.9
-memory_random_access 85.7
-branch_miss_penalty 6.4
-mutex_access 16.5
-fseek_from_disk 1525.1
-memory_copy_1MiB 109910.6
-fread_1MiB_from_disk 136879.6
-fwrite_1MiB_to_disk 610818.2
+|               16.50 |       60,600,848.53 |    0.0% |           63.01 |           56.10 |  1.123 |          18.00 |    0.0% |      0.00 | `mutex_access`
+|            4,835.25 |          206,814.54 |    0.1% |       12,299.50 |       16,439.00 |  0.748 |       4,097.00 |    0.0% |      0.00 | `L1_random_access`
+|          180,318.00 |            5,545.76 |    1.4% |       98,341.00 |      612,952.00 |  0.160 |      32,771.00 |    0.0% |      0.00 | `L2_random_access`
+|       52,336,797.00 |               19.11 |    3.2% |    5,898,281.00 |  177,635,618.00 |  0.033 |   1,966,097.00 |    0.0% |      0.58 | `L3_random_access`
+|    2,875,710,541.00 |                0.35 |    0.0% |  100,664,207.00 |9,758,240,346.00 |  0.010 |  33,555,319.00 |    0.0% |      2.88 | `memory_random_access`
+|        9,299,396.00 |              107.53 |    0.7% |  110,100,499.00 |   31,486,754.00 |  3.497 |  31,457,284.00 |    0.0% |      0.10 | `sorted_memory_branch_mispredictions`
+|       58,986,666.00 |               16.95 |    0.1% |  110,100,514.00 |  200,140,626.00 |  0.550 |  31,457,299.00 |   25.0% |      0.65 | `unsorted_memory_branch_mispredictions`
+|       28,327,114.00 |               35.30 |    0.1% |       23,989.00 |   95,874,050.00 |  0.000 |       4,965.00 |    0.5% |      0.31 | `memory_copy_1MiB`
+|      157,010,839.00 |                6.37 |    0.0% |        4,350.00 |       51,952.00 |  0.084 |         796.00 |   18.7% |      0.16 | `fwrite_1MiB_to_disk`
+|          387,493.00 |            2,580.69 |    0.0% |       81,101.00 |       74,256.00 |  1.092 |      18,564.00 |    0.6% |      0.00 | `fseek_from_disk`
+|       36,226,395.00 |               27.60 |    0.0% |       67,884.00 |      406,640.00 |  0.167 |      15,174.00 |    2.3% |      0.04 | `fread_1MiB_from_disk`
+
+L1_random_access                      1.2
+L2_random_access                      5.5
+L3_random_access                     26.6
+memory_random_access                 85.7
+branch_miss_penalty                   6.3
+mutex_access                         16.5
+fseek_from_disk                    1513.6
+memory_copy_1MiB                 110652.8
+fread_1MiB_from_disk             141509.4
+fwrite_1MiB_to_disk              613323.6
 ```
+
 Help message:
 ```
 $ ./build/numbers -h
@@ -57,43 +63,7 @@ numbers [-h|--help] prints this help and quits.
 numbers [-c|--concise] silences nanobench table of various metrics.
 ```
 
-## prerequisites
-
-- recent linux/glibc on x86-64 with a 1 or 2 GB of free RAM and disk space
-- gcc 9 or 10 for c++17 support; clang 10 or later ok
-- GNU Make
-- recent glibc for `sysconf()` and `_SC_LEVEL[123]_*CACHE_SIZE` symbols
-- pthreads for mutex implementation
-- [pyperf](https://pyperf.readthedocs.io/en/latest/) to prepare the machine for measurement.
-- [nanobench](https://nanobench.ankerl.com/index.html) already in `include/nanobench.h` (MIT license)
-- [argh](https://github.com/adishavit/argh) already in `include/argh.h` (BSD-3 license)
-
-If you do not set CPU governor and `pyperf system tune`, `nanobench` will warn:
-```
-Warning, results might be unstable:
-* CPU frequency scaling enabled: CPU 0 between 1,200.0 and 3,800.0 MHz
-* CPU governor is 'schedutil' but should be 'performance'
-* Turbo is enabled, CPU frequency will fluctuate
-
-Recommendations
-* Use 'pyperf system tune' before benchmarking. See https://github.com/psf/pyperf
-```
-
-## build and run
-
-```
-git clone https://github.com/jaeheum/numbers.git
-cd numbers
-echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-sudo pyperf system tune # follow its direction
-# set core pinning if desired
-make # puts numbers binary in $(pwd)/build
-./build/numbers
-make clean
-```
-
-`numbers -h` prints help message; `-v` prints more metrics from nanobench.
-
+#### installation
 To install `numbers` to `$HOME/.local/bin/numbers`:
 
 ```
@@ -103,7 +73,6 @@ make clean # rm -f build/*
 ```
 
 Run `sudo make PREFIX=/usr/local install` to install `numbers` system-wide.
-
 
 ## quick and dirty
 
@@ -119,7 +88,7 @@ Beware [observational errors](https://en.wikipedia.org/wiki/Observational_error)
 `numbers`'s output is simplistic, best-effort, low-cost, fast measurements.
 For precision measurement see other tools listed below.
 
-See [issues](https://github.com/jaeheum/numbers/issues).
+See [notes](notes.md) and [issues](https://github.com/jaeheum/numbers/issues).
   
 ## License
 
