@@ -12,14 +12,30 @@ p2 "%s checks if ./build/numbers is present, else make all to build it.\n" "$0"
 if [ ! -x "${PWD}"/build/numbers ]; then
   make all
 fi
+ex() {  
+  p2 "${bold}exiting.${offbold}\n"
+  exit "$1"
+}
+# check prerequisite binaries and exit if they are not present
+missing=0
+for x in nproc cpupower modprobe lsmod taskset; do
+  which "${x}" >/dev/null ||
+    { p2 "\n\t%s is missing, please install it\n" "${x}" &&
+      missing=$((missing + 1)); }
+done
+if [ "${missing}" -gt 0 ]; then
+  p2 "%s cannot run without the above missing binaries.\n" "$0"
+  p2 "${bold}exiting.${offbold}\n"
+  ex 1
+fi
 # XXX check if numbers is installed by make install in ~/.local/bin or /u/l/b.
 numbers="${PWD}/build/numbers"
 p2 "${bold}enter 'q' to quit; enter 'h' to print help/quit;"
 p2 " enter any key to run numbers:${offbold} "
 read -r x
 case "$x" in
-q) exit ;;
-h) "${numbers}" -h ;;
+q) ex 0 ;;
+h) "${numbers}" -h; ex 0 ;;
 *)
   p2 "%s will carry out following 6 steps to print latency numbers\n" "$0" >&2
   p2 "1. select a random cpu core\n"
@@ -43,9 +59,9 @@ h) "${numbers}" -h ;;
     # echo "performance" | sudo tee "${sg}"
     sudo cpupower -c "${cpuid}" frequency-set -g "performance"
     p2 "%s: 3. running modprobe msr if msr is not yet loaded\n" "$0"
-    lsmod | grep -w msr || sudo modprobe msr
-    p2 "%s: 4. running pyperf system tune to prepare the machine (if installed)\n" "$0"
-    which pyperf && sudo pyperf system tune
+    lsmod | grep -w msr >/dev/null || sudo modprobe msr
+    p2 "%s: 4. running pyperf system tune to prepare the machine\n" "$0"
+    sudo pyperf system tune
     p2 "\n"
     p2 "%s: 5. running numbers (will take several seconds)\n" "$0"
     taskset -c "${cpuid}" "${numbers}"
@@ -53,12 +69,10 @@ h) "${numbers}" -h ;;
     p2 "%s: 6. resetting the core back to the original mode and exiting\n" "$0"
     # echo "${orig_governor}" | sudo tee "${sg}"
     sudo cpupower -c "${cpuid}" frequency-set -g "${orig_governor}"
-    p2 "${bold}exiting.${offbold}\n"
-    exit
+    ex 0
     ;;
   *)
-    p2 "${bold}exiting.${offbold}\n"
-    exit 1
+    ex 1
     ;;
   esac
   ;;
