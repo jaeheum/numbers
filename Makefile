@@ -38,7 +38,7 @@ uninstall:
 $(PROJECT): nanobench.o numbers.o
 	$(CXX) $(LDFLAGS) -o $(BUILD_DIR)/$(PROJECT) $(BUILD_DIR)/*.o $(LDLIBS)
 prep:
-	@[[ -d $(PWD)/$(BUILD_DIR) ]] || mkdir -p $(PWD)/$(BUILD_DIR)
+	@if [ ! -d $(PWD)/$(BUILD_DIR) ]; then mkdir -p $(PWD)/$(BUILD_DIR); fi;
 install_deps:
 	wget --quiet -O $(INCLUDE_DIR)/LICENSE $(NBLIC)
 	wget --quiet -O $(INCLUDE_DIR)/nanobench.h $(NB)
