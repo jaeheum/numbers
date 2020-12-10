@@ -315,7 +315,7 @@ int main(int, char* argv[]) {
                  (unsorted_branchmisses - sorted_branchmisses);
 
   if (!cmdline[{"-c", "--concise"}]) { ::printf("\n"); }
-  static const char fmt[] = "%-30s %10.1f\n";
+  static const char fmt[] = "%-30s %10.1f ns\n";
   ::printf(fmt, S(L1_random_access),
            latency(L1_random_access, L1_cache_size / sizeof(intptr_t*)));
   ::printf(fmt, S(L2_random_access),
@@ -324,7 +324,7 @@ int main(int, char* argv[]) {
            latency(L3_random_access, L3_cache_size / sizeof(intptr_t*)));
   ::printf(fmt, S(memory_random_access),
            latency(memory_random_access, multiples_of_L3 / sizeof(intptr_t*)));
-  if (!std::isinf(penalty) && !std::isnan(penalty)) {
+  if (std::isfinite(penalty)) {
     ::printf(fmt, S(branch_miss_penalty), penalty);
   }
   ::printf(fmt, S(mutex_access), latency(mutex_access, 1UL));
