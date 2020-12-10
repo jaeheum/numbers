@@ -18,7 +18,7 @@ ex() {
 }
 # check prerequisite binaries and exit if they are not present
 missing=0
-for x in nproc cpupower modprobe lsmod taskset; do
+for x in nproc modprobe lsmod taskset; do
   which "${x}" >/dev/null ||
     { p2 "\n\t%s is missing, please install it\n" "${x}" &&
       missing=$((missing + 1)); }
@@ -56,8 +56,8 @@ h) "${numbers}" -h; ex 0 ;;
     p2 "%s: 2. set the core scaling_governor to performance mode\n" "$0"
     sg=/sys/devices/system/cpu/cpu"${cpuid}"/cpufreq/scaling_governor
     orig_governor=$(cat "${sg}")
-    # echo "performance" | sudo tee "${sg}"
-    sudo cpupower -c "${cpuid}" frequency-set -g "performance"
+    which cpupower > /dev/null && sudo cpupower -c "${cpuid}" frequency-set -g "performance"
+    which cpupower > /dev/null || echo "performance" | sudo tee "${sg}"
     p2 "%s: 3. running modprobe msr if msr is not yet loaded\n" "$0"
     lsmod | grep -w msr >/dev/null || sudo modprobe msr
     p2 "%s: 4. running pyperf system tune to prepare the machine\n" "$0"
@@ -67,8 +67,8 @@ h) "${numbers}" -h; ex 0 ;;
     taskset -c "${cpuid}" "${numbers}"
     p2 "\n"
     p2 "%s: 6. resetting the core back to the original mode and exiting\n" "$0"
-    # echo "${orig_governor}" | sudo tee "${sg}"
-    sudo cpupower -c "${cpuid}" frequency-set -g "${orig_governor}"
+    which cpupower > /dev/null && sudo cpupower -c "${cpuid}" frequency-set -g "${orig_governor}"
+    which cpupower > /dev/null ||  echo "${orig_governor}" | sudo tee "${sg}"
     ex 0
     ;;
   *)
