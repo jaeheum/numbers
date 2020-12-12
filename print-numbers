@@ -18,7 +18,7 @@ ex() {
 }
 # check prerequisite binaries and exit if they are not present
 missing=0
-for x in nproc modprobe lsmod taskset; do
+for x in nproc modprobe lsmod; do
   which "${x}" >/dev/null ||
     { p2 "\n\t%s is missing, please install it\n" "${x}" &&
       missing=$((missing + 1)); }
@@ -37,14 +37,13 @@ case "$x" in
 q) ex 0 ;;
 h) "${numbers}" -h; ex 0 ;;
 *)
-  p2 "%s will carry out following 6 steps to print latency numbers\n" "$0" >&2
-  p2 "1. select a random cpu core\n"
-  p2 "2. set the core scaling_governor to performance mode\n"
-  p2 "3. modprobe msr if msr is not yet loaded\n"
-  p2 "4. run pyperf system tune to prepare the machine\n"
-  p2 "5. run numbers\n"
-  p2 "6. reset the core back to the original mode and exit.\n"
-  p2 "n.b. sudo is required for steps 2, 3, 4 and 6.\n"
+  p2 "%s will carry out following 5 steps to print latency numbers\n" "$0" >&2
+  p2 "1. set the cores scaling_governor to performance mode\n"
+  p2 "2. modprobe msr if msr is not yet loaded\n"
+  p2 "3. run pyperf system tune to prepare the machine\n"
+  p2 "4. run numbers\n"
+  p2 "5. reset the cores to the original mode and exit.\n"
+  p2 "n.b. sudo is required for all steps except for 4.\n"
   p2 "n.b. most likely you will need to enter password to sudo only once.\n"
   p2 "${bold}enter 'y' to proceed; enter any other key to quit:${offbold} "
   read -r y
@@ -52,23 +51,24 @@ h) "${numbers}" -h; ex 0 ;;
   y)
     p2 "\n\n"
     cpuid=$(($$ % $(nproc)))
-    p2 "%s: 1. selecting a random cpu core: ${cpuid}\n" "$0"
-    p2 "%s: 2. set the core scaling_governor to performance mode\n" "$0"
+    p2 "%s: 1. set the cores scaling_governor to performance mode\n" "$0"
     sg=/sys/devices/system/cpu/cpu"${cpuid}"/cpufreq/scaling_governor
+    sgall="/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
     orig_governor=$(cat "${sg}")
-    which cpupower > /dev/null && sudo cpupower -c "${cpuid}" frequency-set -g "performance"
-    which cpupower > /dev/null || echo "performance" | sudo tee "${sg}"
-    p2 "%s: 3. running modprobe msr if msr is not yet loaded\n" "$0"
+    p2 "original scaling_governor=%s\n" "${orig_governor}"
+    if [ "${orig_governor}" != "performance" ]; then
+      echo performance | sudo tee ${sgall}
+    fi
+    p2 "%s: 2. running modprobe msr if msr is not yet loaded\n" "$0"
     lsmod | grep -w msr >/dev/null || sudo modprobe msr
-    p2 "%s: 4. running pyperf system tune to prepare the machine\n" "$0"
+    p2 "%s: 3. running pyperf system tune to prepare the machine\n" "$0"
     sudo pyperf system tune
     p2 "\n"
-    p2 "%s: 5. running numbers (will take several seconds)\n" "$0"
-    taskset -c "${cpuid}" "${numbers}"
+    p2 "%s: 4. running numbers (will take several seconds)\n" "$0"
+    "${numbers}"
     p2 "\n"
-    p2 "%s: 6. resetting the core back to the original mode and exiting\n" "$0"
-    which cpupower > /dev/null && sudo cpupower -c "${cpuid}" frequency-set -g "${orig_governor}"
-    which cpupower > /dev/null ||  echo "${orig_governor}" | sudo tee "${sg}"
+    p2 "%s: 5. resetting the cores to the original mode and exiting\n" "$0"
+    echo "${orig_governor}" | sudo tee ${sgall}
     ex 0
     ;;
   *)
