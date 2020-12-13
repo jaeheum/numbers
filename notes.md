@@ -1,8 +1,8 @@
 # notes on numbers
 
-## calibration
+## warning and calibration
 
-If you do not set CPU governor and `pyperf system tune`, `nanobench` will warn: 
+As noted in [README.md](README.md), `numbers` may print some warning like:
 ```                                                                             
 Warning, results might be unstable:                                             
 * CPU frequency scaling enabled: CPU 0 between 1,200.0 and 3,800.0 MHz          
@@ -13,11 +13,26 @@ Recommendations
 * Use 'pyperf system tune' before benchmarking. See https://github.com/psf/pyperf
 ```
 
-`print-numbers` script takes care of running `pyperf`,
-setting `scaling_governor`, and others. Be warned that `print-numbers`
-expects many prerequisite binaries installed. Especially `pyperf` should
-be installed as root (`sudo pip install pyperf`) so that
-`sudo pyperf system tune` can run.
+Meaning of this warning is: typical default Linux
+and hardware configuations allow CPU to change frequency depending on
+given situations and that can result in inaccurate measurement.
+(`numbers` uses `nanobench` performance test suite and it is actually
+`nanobench` that issues this warning.)
+
+Recommended courses of action:
+- reduce noise of the system: e.g. stop browser and other non-essential processes.
+- install `pyperf` as a root: `sudo pip install pyperf`
+  - this is to enable running `sudo pyperf system tune`
+  - some linux distributions may have `pyperf` as a system package
+- run `print-numbers` script that wraps `pyperf` and `build/numbers`.
+  - this results in better calibrated output
+
+### benchmarking tips
+
+Consult these for more advanced benchmark calibration tips e.g. isolation of cpu.
+- https://pyperf.readthedocs.io/en/latest/system.html
+- https://llvm.org/docs/Benchmarking.html
+- https://nanobench.ankerl.com/reference.html
 
 ## numbers internals
 
@@ -37,7 +52,8 @@ Mutex measurement is simple: measure the time for
 
 ### memory latency measurement
 
-Fill L1, L2, L3, main memory with a linked list of pointers pointing to the next item in the list; shuffle the list.
+Fill L1, L2, L3, “main memory” with a linked list of pointers pointing to the
+next one in the list; shuffle the list.
 Measure the time to load a pointer, and dereference it to go to the next
 in the list; repeat over the list.
 
@@ -79,7 +95,7 @@ See this [nanobench issue 36](https://github.com/martinus/nanobench/issues/36) f
 `numbers` tries to use as few dependencies as possible:
 
 - [pyperf](https://pyperf.readthedocs.io/en/latest/) to prepare the machine for 
-measurement.                                                                    
+measurement.
   - it needs to be installed as root or system python package e.g. `sudo pip install pyperf`.
   - some linux distros lets you install it with their package managers
 - [nanobench](https://nanobench.ankerl.com/index.html) already in `include/nanobench.h` (MIT license)
@@ -107,9 +123,4 @@ thanks to divergence in incompatible C++ package managers.
 - https://github.com/ssvb/tinymembench
 - https://software.intel.com/content/www/us/en/develop/articles/intelr-memory-latency-checker.html
 - https://github.com/Kobzol/hardware-effects
-
-### benchmarking tips
-
-- https://nanobench.ankerl.com/reference.html
-- https://llvm.org/docs/Benchmarking.html
 

@@ -69,6 +69,7 @@ h) "${numbers}" -h; ex 0 ;;
     p2 "\n"
     p2 "%s: 5. resetting the cores to the original mode and exiting\n" "$0"
     echo "${orig_governor}" | sudo tee ${sgall}
+    sudo pyperf system reset
     ex 0
     ;;
   *)

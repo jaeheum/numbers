@@ -6,7 +6,7 @@
 ["latency numbers every programmer should know" 1](https://gist.github.com/hellerbarde/2843375),
 [2](http://norvig.com/21-days.html#answers), [3](https://gist.github.com/jboner/2841832), [4](https://colin-scott.github.io/personal_website/research/interactive_latency.html).
 
-**.n.b.** it's for linux on x86-64 with c++17 compiler only (gcc 9, 10; clang 10, 11). 
+**n.b.** it's for linux on x86-64 with c++17 compiler only (gcc 9, 10; clang 10, 11). 
 
 ```
 $ git clone https://github.com/jaeheum/numbers.git
@@ -48,14 +48,20 @@ fread_1MiB_from_disk             134819.1 ns     1548.5 cycles
 fwrite_1MiB_to_disk              610548.4 ns      207.7 cycles
 ```
 
-## quick and dirty
+### quick and dirty
 
 `numbers`'s output comes from simplistic, best-effort, low-cost, fast measurements.
 
-Read [notes.md](notes.md) for making it less quick-and-dirty,
+**n.b.** Read [notes.md](notes.md) for making `numbers` less quick-and-dirty,
 along with information about internals of `numbers`, and more advanced tools.
 
 There are also [known issues](https://github.com/jaeheum/numbers/issues).
+
+### no cycles column in the output
+
+Depending on Linux configuration, `numbers` may not be able to access
+hardware performance counters. In this case, `numbers` does not print
+`branch_miss_penalty` row and `cycles` column in the output.
 
 ## License
 
