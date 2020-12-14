@@ -23,7 +23,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 // create_random_chain() and chase_pointers() are from
 // https://github.com/afborchert/pointer-chasing
 // with a few adjustments:
-// - `intptr_t*` instead of `void*`
 // - `std::shuffle` instead of manual shuffling
 // - lambda
 //
@@ -159,14 +158,14 @@ int main(int, char* argv[]) {
     m.unlock();
   });
 
-  intptr_t* dummy;
-  std::vector<intptr_t*> memory;
+  void* dummy;
+  std::vector<void*> memory;
   auto create_random_chain = [&](const size_t limit) {
-    memory.resize(limit / sizeof(intptr_t*));
+    memory.resize(limit / sizeof(void*));
     for (size_t i = 0; i < memory.size() - 1; ++i) {
-      memory[i] = reinterpret_cast<intptr_t*>(&memory[i + 1]);
+      memory[i] = reinterpret_cast<void*>(&memory[i + 1]);
     }
-    memory[memory.size() - 1] = reinterpret_cast<intptr_t*>(&memory[0]);
+    memory[memory.size() - 1] = reinterpret_cast<void*>(&memory[0]);
     std::shuffle(memory.begin(), memory.end(),
                  ankerl::nanobench::Rng{std::random_device{}()});
   };
@@ -175,7 +174,7 @@ int main(int, char* argv[]) {
     auto x = &memory[0];
     size_t count = memory.size();
     while (count--) {
-      x = reinterpret_cast<intptr_t**>(*x);
+      x = reinterpret_cast<void**>(*x);
     }
     dummy = *x;
   };
@@ -337,18 +336,17 @@ int main(int, char* argv[]) {
 
   if (std::isnormal(penalty)) {
     ::printf(fmt_ns_cyc, S(L1_random_access),
-             latency(L1_random_access, L1_cache_size / sizeof(intptr_t*)),
-             cpucycles(L1_random_access, L1_cache_size / sizeof(intptr_t*)));
+             latency(L1_random_access, L1_cache_size / sizeof(void*)),
+             cpucycles(L1_random_access, L1_cache_size / sizeof(void*)));
     ::printf(fmt_ns_cyc, S(L2_random_access),
-             latency(L2_random_access, L2_cache_size / sizeof(intptr_t*)),
-             cpucycles(L2_random_access, L2_cache_size / sizeof(intptr_t*)));
+             latency(L2_random_access, L2_cache_size / sizeof(void*)),
+             cpucycles(L2_random_access, L2_cache_size / sizeof(void*)));
     ::printf(fmt_ns_cyc, S(L3_random_access),
-             latency(L3_random_access, L3_cache_size / sizeof(intptr_t*)),
-             cpucycles(L3_random_access, L3_cache_size / sizeof(intptr_t*)));
-    ::printf(
-        fmt_ns_cyc, S(memory_random_access),
-        latency(memory_random_access, multiples_of_L3 / sizeof(intptr_t*)),
-        cpucycles(memory_random_access, multiples_of_L3 / sizeof(intptr_t*)));
+             latency(L3_random_access, L3_cache_size / sizeof(void*)),
+             cpucycles(L3_random_access, L3_cache_size / sizeof(void*)));
+    ::printf(fmt_ns_cyc, S(memory_random_access),
+             latency(memory_random_access, multiples_of_L3 / sizeof(void*)),
+             cpucycles(memory_random_access, multiples_of_L3 / sizeof(void*)));
     ::printf(fmt_ns_cyc, S(branch_miss_penalty), penalty, penalty_cycles);
     ::printf(fmt_ns_cyc, S(mutex_access), latency(mutex_access, 1UL),
              cpucycles(mutex_access, 1UL));
@@ -366,14 +364,13 @@ int main(int, char* argv[]) {
              cpucycles(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
   } else {
     ::printf(fmt_ns, S(L1_random_access),
-             latency(L1_random_access, L1_cache_size / sizeof(intptr_t*)));
+             latency(L1_random_access, L1_cache_size / sizeof(void*)));
     ::printf(fmt_ns, S(L2_random_access),
-             latency(L2_random_access, L2_cache_size / sizeof(intptr_t*)));
+             latency(L2_random_access, L2_cache_size / sizeof(void*)));
     ::printf(fmt_ns, S(L3_random_access),
-             latency(L3_random_access, L3_cache_size / sizeof(intptr_t*)));
-    ::printf(
-        fmt_ns, S(memory_random_access),
-        latency(memory_random_access, multiples_of_L3 / sizeof(intptr_t*)));
+             latency(L3_random_access, L3_cache_size / sizeof(void*)));
+    ::printf(fmt_ns, S(memory_random_access),
+             latency(memory_random_access, multiples_of_L3 / sizeof(void*)));
     // skip printing branch_miss_penalty
     ::printf(fmt_ns, S(mutex_access), latency(mutex_access, 1UL));
     ::printf(fmt_ns, S(fseek_from_disk),
