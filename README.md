@@ -50,10 +50,21 @@ fwrite_1MiB_to_disk              610548.4 ns      207.7 cycles
 
 ### quick and dirty
 
-`numbers`'s output comes from simplistic, best-effort, low-cost, fast measurements.
+`numbers`'s output comes from simplistic, best-effort, low-cost, fast
+measurements.
 
-**n.b.** Read [notes.md](notes.md) for making `numbers` less quick-and-dirty,
-along with information about internals of `numbers`, and more advanced tools.
+For a more careful measurement, run the following commands:
+
+```
+$ sudo pip install pyperf # so that 'sudo pyperf system tune' can run
+## On Arch linux, pyperf is available as a package
+$ ./print-numbers
+```
+
+**n.b.** Read [notes.md](notes.md) for
+[benchmarking tips](notes.md#benchmarking-tips) and more sophisticated
+[tools](notes.md#latency-measurements-discussions-and-tools).
+[notes.md](notes.md) also contains information about internals of `numbers`.
 
 There are also [known issues](https://github.com/jaeheum/numbers/issues).
 
