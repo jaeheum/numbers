@@ -3,7 +3,7 @@
 .PHONY: all install uninstall numbers prep install_deps clean run
 
 CXX=g++
-CXXFLAGS=-Wall -Wextra -Wpedantic -Ofast --std=c++17
+CXXFLAGS=-Wall -Wextra -Wpedantic -Ofast --std=c++17 -mtune=native -march=native
 CXXEXTRAS=
 CXXFLAGS+=$(CXXEXTRAS)
 LDLIBS=-lpthread
