@@ -6,7 +6,7 @@
 ["latency numbers every programmer should know" 1](https://gist.github.com/hellerbarde/2843375),
 [2](http://norvig.com/21-days.html#answers), [3](https://gist.github.com/jboner/2841832), [4](https://colin-scott.github.io/personal_website/research/interactive_latency.html).
 
-**n.b.** it's for linux on x86-64 with c++17 compiler only (gcc 9, 10; clang 10, 11). 
+**n.b.** it's for linux on x86-64 with c++17 compiler only (gcc 9, 10; clang 10, 11).
 
 ```
 $ git clone https://github.com/jaeheum/numbers.git
@@ -81,8 +81,8 @@ MIT License
 ## Acknowledgement
 
 `numbers` benefits from
+
 - code derived from https://github.com/afborchert/pointer-chasing (MIT)
 - [nanobench](https://nanobench.ankerl.com/reference.html) for microbenchmarking suite (MIT)
 - [argh](https://github.com/adishavit/argh) for command line handling (BSD-3)
 - [a stackflow post on sorted vs unsorted array](https://stackoverflow.com/questions/11227809/why-is-it-faster-to-process-a-sorted-array-than-an-unsorted-array)
-
