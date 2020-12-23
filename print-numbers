@@ -1,6 +1,7 @@
 #!/bin/sh
 # XXX lots of linuxism, despite being a supposedly posix script...
 # XXX this shell script (like most of scripts) is too verbose...
+set -eu
 
 # XXX https://github.com/koalaman/shellcheck/wiki/SC2059
 p2() { printf "$@" >&2; }
@@ -57,7 +58,7 @@ h) "${numbers}" -h; ex 0 ;;
     orig_governor=$(cat "${sg}")
     p2 "original scaling_governor=%s\n" "${orig_governor}"
     if [ "${orig_governor}" != "performance" ]; then
-      echo performance | sudo tee ${sgall}
+      echo performance | sudo tee ${sgall} # ignore missing "" -- need globbing.
     fi
     p2 "%s: 2. running modprobe msr if msr is not yet loaded\n" "$0"
     lsmod | grep -w msr >/dev/null || sudo modprobe msr
@@ -68,7 +69,7 @@ h) "${numbers}" -h; ex 0 ;;
     "${numbers}"
     p2 "\n"
     p2 "%s: 5. resetting the cores to the original mode and exiting\n" "$0"
-    echo "${orig_governor}" | sudo tee ${sgall}
+    echo "${orig_governor}" | sudo tee ${sgall} # again, need globbing.
     sudo pyperf system reset
     ex 0
     ;;
