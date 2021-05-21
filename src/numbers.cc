@@ -255,45 +255,49 @@ int main(int, char* argv[]) {
   });
 
   ankerl::nanobench::Bench fwrite_1MiB_to_disk;
-  fwrite_1MiB_to_disk.name(S(fwrite_1MiB_to_disk))
-      .epochs(1)
-      .epochIterations(1)
-      .output(outstream)
-      .run([&] {
-        FILE* fp = std::fopen(p.c_str(), "wb");
-        assert(fp);
-        std::fwrite(chars.data(), sizeof chars[0], chars.size(), fp);
-        std::fclose(fp);
-      });
-
   ankerl::nanobench::Bench fseek_from_disk;
-  fseek_from_disk.name(S(fseek_from_disk))
-      .epochs(1)
-      .epochIterations(1)
-      .output(outstream)
-      .run([&] {
-        FILE* fp = std::fopen(p.c_str(), "rb");
-        assert(fp);
-        for (size_t i = 0; i < fs::file_size(p); i += MiB) {
-          std::fseek(fp, i, SEEK_SET);
-        }
-        std::fclose(fp);
-      });
-
   ankerl::nanobench::Bench fread_1MiB_from_disk;
-  fread_1MiB_from_disk.name(S(fread_1MiB_from_disk))
-      .epochs(1)
-      .epochIterations(1)
-      .output(outstream)
-      .run([&] {
-        FILE* fp = std::fopen(p.c_str(), "rb");
-        assert(fp);
-        std::vector<char> cs(MiB);
-        for (size_t i = 0; i < fs::file_size(p); i += MiB) {
-          std::fread(&cs[0], sizeof cs[0], MiB, fp);
-        }
-        std::fclose(fp);
-      });
+  std::error_code ec;
+  const fs::space_info si = fs::space(fs::current_path(), ec);
+  if (si.available > multiples_of_L3) {
+    fwrite_1MiB_to_disk.name(S(fwrite_1MiB_to_disk))
+        .epochs(1)
+        .epochIterations(1)
+        .output(outstream)
+        .run([&] {
+          FILE* fp = std::fopen(p.c_str(), "wb");
+          assert(fp);
+          std::fwrite(chars.data(), sizeof chars[0], chars.size(), fp);
+          std::fclose(fp);
+        });
+
+    fseek_from_disk.name(S(fseek_from_disk))
+        .epochs(1)
+        .epochIterations(1)
+        .output(outstream)
+        .run([&] {
+          FILE* fp = std::fopen(p.c_str(), "rb");
+          assert(fp);
+          for (size_t i = 0; i < fs::file_size(p); i += MiB) {
+            std::fseek(fp, i, SEEK_SET);
+          }
+          std::fclose(fp);
+        });
+
+    fread_1MiB_from_disk.name(S(fread_1MiB_from_disk))
+        .epochs(1)
+        .epochIterations(1)
+        .output(outstream)
+        .run([&] {
+          FILE* fp = std::fopen(p.c_str(), "rb");
+          assert(fp);
+          std::vector<char> cs(MiB);
+          for (size_t i = 0; i < fs::file_size(p); i += MiB) {
+            std::fread(&cs[0], sizeof cs[0], MiB, fp);
+          }
+          std::fclose(fp);
+        });
+  }
 
   auto v = [](const ankerl::nanobench::Result r, const std::string& s) {
     return r.fromString(s);
@@ -368,18 +372,20 @@ int main(int, char* argv[]) {
     ::printf(fmt_ns_cyc, S(branch_miss_penalty), penalty, penalty_cycles);
     ::printf(fmt_ns_cyc, S(mutex_access), latency(mutex_access, 1UL),
              cpucycles(mutex_access, 1UL));
-    ::printf(fmt_ns_cyc, S(fseek_from_disk),
-             latency(fseek_from_disk, fs::file_size(p) / MiB),
-             cpucycles(fseek_from_disk, fs::file_size(p) / MiB));
     ::printf(fmt_ns_cyc, S(memory_copy_1MiB),
              latency(memory_copy_1MiB, chars.size() / MiB),
              cpucycles(memory_copy_1MiB, chars.size() / MiB));
-    ::printf(fmt_ns_cyc, S(fread_1MiB_from_disk),
-             latency(fread_1MiB_from_disk, fs::file_size(p) / MiB),
-             cpucycles(fread_1MiB_from_disk, fs::file_size(p) / MiB));
-    ::printf(fmt_ns_cyc, S(fwrite_1MiB_to_disk),
-             latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB),
-             cpucycles(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
+    if (si.available > multiples_of_L3) {
+      ::printf(fmt_ns_cyc, S(fseek_from_disk),
+               latency(fseek_from_disk, fs::file_size(p) / MiB),
+               cpucycles(fseek_from_disk, fs::file_size(p) / MiB));
+      ::printf(fmt_ns_cyc, S(fread_1MiB_from_disk),
+               latency(fread_1MiB_from_disk, fs::file_size(p) / MiB),
+               cpucycles(fread_1MiB_from_disk, fs::file_size(p) / MiB));
+      ::printf(fmt_ns_cyc, S(fwrite_1MiB_to_disk),
+               latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB),
+               cpucycles(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
+    }
   } else {
     if (L1_cache_size != 0) { 
       ::printf(fmt_ns, S(L1_random_access),
@@ -397,14 +403,16 @@ int main(int, char* argv[]) {
              latency(memory_random_access, multiples_of_L3 / sizeof(void*)));
     // skip printing branch_miss_penalty
     ::printf(fmt_ns, S(mutex_access), latency(mutex_access, 1UL));
-    ::printf(fmt_ns, S(fseek_from_disk),
-             latency(fseek_from_disk, fs::file_size(p) / MiB));
     ::printf(fmt_ns, S(memory_copy_1MiB),
              latency(memory_copy_1MiB, chars.size() / MiB));
-    ::printf(fmt_ns, S(fread_1MiB_from_disk),
-             latency(fread_1MiB_from_disk, fs::file_size(p) / MiB));
-    ::printf(fmt_ns, S(fwrite_1MiB_to_disk),
-             latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
+    if (si.available > multiples_of_L3) {
+      ::printf(fmt_ns, S(fseek_from_disk),
+              latency(fseek_from_disk, fs::file_size(p) / MiB));
+      ::printf(fmt_ns, S(fread_1MiB_from_disk),
+               latency(fread_1MiB_from_disk, fs::file_size(p) / MiB));
+      ::printf(fmt_ns, S(fwrite_1MiB_to_disk),
+               latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
+    }
   }
   return EXIT_SUCCESS;
 }
