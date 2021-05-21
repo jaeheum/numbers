@@ -103,7 +103,7 @@ static const size_t cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
 static const size_t L2_cache_size = sysconf(_SC_LEVEL2_CACHE_SIZE);
 static const size_t L3_cache_size = sysconf(_SC_LEVEL3_CACHE_SIZE);
 // XXX is 1GiB enough on Zen2 EPYC and such "large" cpus?
-static const size_t multiples_of_L3 =
+static const size_t memory_chunk =
     std::clamp(sysconf(_SC_LEVEL3_CACHE_SIZE) *
                    static_cast<size_t>(std::thread::hardware_concurrency()),
                256 * MiB,
@@ -133,7 +133,7 @@ int main(int, char* argv[]) {
         "   (If glibc does not yield accurate non-zero values of cache sizes,\n"
         "   `numbers` skips measuring latencies of caches.)\n",
         L1_cache_size / KiB, L2_cache_size / KiB, L3_cache_size / MiB,
-        multiples_of_L3 / MiB);
+        memory_chunk / MiB);
     ::printf(
         "branch_miss_penalty: latency due to a branch misprediction e.g. `if "
         "(x > 0)`.\n");
@@ -142,7 +142,7 @@ int main(int, char* argv[]) {
     ::printf(
         "f{seek,read,write}_..._disk: latency of 1MiB-unit disk IO over a %ld "
         "MiB file.\n",
-        multiples_of_L3 / MiB);
+        memory_chunk / MiB);
     ::printf("\n");
     ::printf("numbers [-h|--help] prints this help and quits.\n");
     ::printf(
@@ -208,7 +208,7 @@ int main(int, char* argv[]) {
         .run(chase_pointers);
   }
 
-  create_random_chain(multiples_of_L3);
+  create_random_chain(memory_chunk);
   ankerl::nanobench::Bench memory_random_access;
   memory_random_access.name(S(memory_random_access))
       .epochs(1)
@@ -219,7 +219,7 @@ int main(int, char* argv[]) {
   // measure branch misprediction penalty from comparison of filtering
   // sorted array vs unsorted one. c.f.
   // https://stackoverflow.com/questions/11227809/why-is-it-faster-to-process-a-sorted-array-than-an-unsorted-array
-  const auto c = std::max(L3_cache_size, multiples_of_L3 / sizeof(int)); 
+  const auto c = std::max(L3_cache_size, memory_chunk / sizeof(int)); 
   std::vector<int> vi(c);
   std::iota(std::begin(vi), std::end(vi), static_cast<int>(-c / 2));
   ankerl::nanobench::Bench sorted_memory_branch_mispredictions;
@@ -245,7 +245,7 @@ int main(int, char* argv[]) {
       .run(positive_only);
 
   const std::string_view chars(reinterpret_cast<const char*>(&memory[0]),
-                               multiples_of_L3);
+                               memory_chunk);
   ankerl::nanobench::Bench memory_copy_1MiB;
   memory_copy_1MiB.name(S(memory_copy_1MiB)).output(outstream).run([&] {
     std::string t;
@@ -259,7 +259,7 @@ int main(int, char* argv[]) {
   ankerl::nanobench::Bench fread_1MiB_from_disk;
   std::error_code ec;
   const fs::space_info si = fs::space(fs::current_path(), ec);
-  if (si.available > multiples_of_L3) {
+  if (si.available > memory_chunk) {
     fwrite_1MiB_to_disk.name(S(fwrite_1MiB_to_disk))
         .epochs(1)
         .epochIterations(1)
@@ -367,15 +367,15 @@ int main(int, char* argv[]) {
                cpucycles(L3_random_access, L3_cache_size / sizeof(void*)));
     }
     ::printf(fmt_ns_cyc, S(memory_random_access),
-             latency(memory_random_access, multiples_of_L3 / sizeof(void*)),
-             cpucycles(memory_random_access, multiples_of_L3 / sizeof(void*)));
+             latency(memory_random_access, memory_chunk / sizeof(void*)),
+             cpucycles(memory_random_access, memory_chunk / sizeof(void*)));
     ::printf(fmt_ns_cyc, S(branch_miss_penalty), penalty, penalty_cycles);
     ::printf(fmt_ns_cyc, S(mutex_access), latency(mutex_access, 1UL),
              cpucycles(mutex_access, 1UL));
     ::printf(fmt_ns_cyc, S(memory_copy_1MiB),
              latency(memory_copy_1MiB, chars.size() / MiB),
              cpucycles(memory_copy_1MiB, chars.size() / MiB));
-    if (si.available > multiples_of_L3) {
+    if (si.available > memory_chunk) {
       ::printf(fmt_ns_cyc, S(fseek_from_disk),
                latency(fseek_from_disk, fs::file_size(p) / MiB),
                cpucycles(fseek_from_disk, fs::file_size(p) / MiB));
@@ -400,12 +400,12 @@ int main(int, char* argv[]) {
                latency(L3_random_access, L3_cache_size / sizeof(void*)));
     }
     ::printf(fmt_ns, S(memory_random_access),
-             latency(memory_random_access, multiples_of_L3 / sizeof(void*)));
+             latency(memory_random_access, memory_chunk / sizeof(void*)));
     // skip printing branch_miss_penalty
     ::printf(fmt_ns, S(mutex_access), latency(mutex_access, 1UL));
     ::printf(fmt_ns, S(memory_copy_1MiB),
              latency(memory_copy_1MiB, chars.size() / MiB));
-    if (si.available > multiples_of_L3) {
+    if (si.available > memory_chunk) {
       ::printf(fmt_ns, S(fseek_from_disk),
               latency(fseek_from_disk, fs::file_size(p) / MiB));
       ::printf(fmt_ns, S(fread_1MiB_from_disk),
