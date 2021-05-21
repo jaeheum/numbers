@@ -117,7 +117,7 @@ int main(int, char* argv[]) {
   std::atexit(deleteme_atexit);
 
   std::ostream* outstream = &std::cout;
-  ;
+ 
   argh::parser cmdline(argv);
   if (cmdline[{"-c", "--concise"}]) {
     // print nanobench table output by setting bench.output(outstream)
@@ -129,7 +129,9 @@ int main(int, char* argv[]) {
     ::printf(
         "{L[123],memory}_random_access: latency of loading&dereferening a "
         "random pointer\n"
-        "   from L1: %ld KiB; L2: %ld KiB; L3: %ld MiB; \"memory\": %ld MiB.\n",
+        "   from L1: %ld KiB; L2: %ld KiB; L3: %ld MiB; \"memory\": %ld MiB.\n"
+        "   (If glibc does not yield accurate non-zero values of cache sizes,\n"
+        "   `numbers` skips measuring latencies of caches.)\n",
         L1_cache_size / KiB, L2_cache_size / KiB, L3_cache_size / MiB,
         multiples_of_L3 / MiB);
     ::printf(
@@ -161,6 +163,9 @@ int main(int, char* argv[]) {
   void* dummy;
   std::vector<void*> memory;
   auto create_random_chain = [&](const size_t limit) {
+    if (limit == 0) {
+      return;
+    }
     memory.resize(limit / sizeof(void*));
     for (size_t i = 0; i < memory.size() - 1; ++i) {
       memory[i] = reinterpret_cast<void*>(&memory[i + 1]);
@@ -181,21 +186,27 @@ int main(int, char* argv[]) {
 
   create_random_chain(L1_cache_size);
   ankerl::nanobench::Bench L1_random_access;
-  L1_random_access.name(S(L1_random_access))
-      .output(outstream)
-      .run(chase_pointers);
+  if (L1_cache_size != 0) {
+    L1_random_access.name(S(L1_random_access))
+        .output(outstream)
+        .run(chase_pointers);
+  }
 
   create_random_chain(L2_cache_size);
   ankerl::nanobench::Bench L2_random_access;
-  L2_random_access.name(S(L2_random_access))
-      .output(outstream)
-      .run(chase_pointers);
+  if (L2_cache_size != 0) {
+    L2_random_access.name(S(L2_random_access))
+        .output(outstream)
+        .run(chase_pointers);
+  }
 
   create_random_chain(L3_cache_size);
   ankerl::nanobench::Bench L3_random_access;
-  L3_random_access.name(S(L3_random_access))
-      .output(outstream)
-      .run(chase_pointers);
+  if (L3_cache_size != 0) {
+    L3_random_access.name(S(L3_random_access))
+        .output(outstream)
+        .run(chase_pointers);
+  }
 
   create_random_chain(multiples_of_L3);
   ankerl::nanobench::Bench memory_random_access;
@@ -208,8 +219,9 @@ int main(int, char* argv[]) {
   // measure branch misprediction penalty from comparison of filtering
   // sorted array vs unsorted one. c.f.
   // https://stackoverflow.com/questions/11227809/why-is-it-faster-to-process-a-sorted-array-than-an-unsorted-array
-  std::vector<int> vi(L3_cache_size);
-  std::iota(std::begin(vi), std::end(vi), static_cast<int>(-L3_cache_size / 2));
+  const auto c = std::max(L3_cache_size, multiples_of_L3 / sizeof(int)); 
+  std::vector<int> vi(c);
+  std::iota(std::begin(vi), std::end(vi), static_cast<int>(-c / 2));
   ankerl::nanobench::Bench sorted_memory_branch_mispredictions;
   int y;
   auto positive_only = [&] {
@@ -335,15 +347,21 @@ int main(int, char* argv[]) {
   static const char* fmt_ns = "%-30s %10.1f ns\n";
 
   if (std::isnormal(penalty)) {
-    ::printf(fmt_ns_cyc, S(L1_random_access),
-             latency(L1_random_access, L1_cache_size / sizeof(void*)),
-             cpucycles(L1_random_access, L1_cache_size / sizeof(void*)));
-    ::printf(fmt_ns_cyc, S(L2_random_access),
-             latency(L2_random_access, L2_cache_size / sizeof(void*)),
-             cpucycles(L2_random_access, L2_cache_size / sizeof(void*)));
-    ::printf(fmt_ns_cyc, S(L3_random_access),
-             latency(L3_random_access, L3_cache_size / sizeof(void*)),
-             cpucycles(L3_random_access, L3_cache_size / sizeof(void*)));
+    if (L1_cache_size != 0) { 
+      ::printf(fmt_ns_cyc, S(L1_random_access),
+               latency(L1_random_access, L1_cache_size / sizeof(void*)),
+               cpucycles(L1_random_access, L1_cache_size / sizeof(void*)));
+    }
+    if (L2_cache_size != 0) { 
+      ::printf(fmt_ns_cyc, S(L2_random_access),
+               latency(L2_random_access, L2_cache_size / sizeof(void*)),
+               cpucycles(L2_random_access, L2_cache_size / sizeof(void*)));
+    }
+    if (L3_cache_size != 0) { 
+      ::printf(fmt_ns_cyc, S(L3_random_access),
+               latency(L3_random_access, L3_cache_size / sizeof(void*)),
+               cpucycles(L3_random_access, L3_cache_size / sizeof(void*)));
+    }
     ::printf(fmt_ns_cyc, S(memory_random_access),
              latency(memory_random_access, multiples_of_L3 / sizeof(void*)),
              cpucycles(memory_random_access, multiples_of_L3 / sizeof(void*)));
@@ -363,12 +381,18 @@ int main(int, char* argv[]) {
              latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB),
              cpucycles(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
   } else {
-    ::printf(fmt_ns, S(L1_random_access),
-             latency(L1_random_access, L1_cache_size / sizeof(void*)));
-    ::printf(fmt_ns, S(L2_random_access),
-             latency(L2_random_access, L2_cache_size / sizeof(void*)));
-    ::printf(fmt_ns, S(L3_random_access),
-             latency(L3_random_access, L3_cache_size / sizeof(void*)));
+    if (L1_cache_size != 0) { 
+      ::printf(fmt_ns, S(L1_random_access),
+               latency(L1_random_access, L1_cache_size / sizeof(void*)));
+    }
+    if (L2_cache_size != 0) { 
+      ::printf(fmt_ns, S(L2_random_access),
+               latency(L2_random_access, L2_cache_size / sizeof(void*)));
+    }
+    if (L3_cache_size != 0) { 
+      ::printf(fmt_ns, S(L3_random_access),
+               latency(L3_random_access, L3_cache_size / sizeof(void*)));
+    }
     ::printf(fmt_ns, S(memory_random_access),
              latency(memory_random_access, multiples_of_L3 / sizeof(void*)));
     // skip printing branch_miss_penalty
