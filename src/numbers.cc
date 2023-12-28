@@ -311,36 +311,34 @@ int main(int, char* argv[]) {
     return branchmisses / b.results().size();
   };
 
-  // XXX dedup
-  auto cpucycles = [&](const ankerl::nanobench::Bench& b, const size_t denom) {
+  auto cpucycles_per_element = [&](const ankerl::nanobench::Bench& b, const size_t element_count) {
     auto cpucycles = 0.0;
     for (auto& x : b.results()) {
       cpucycles += x.median(v(x, "cpucycles"));
     }
-    return cpucycles / b.results().size() / denom;
+    return cpucycles / b.results().size() / element_count;
   };
 
-  // XXX latency_per_element
-  auto latency = [&](const ankerl::nanobench::Bench& b, const size_t denom) {
+  auto latency_per_element = [&](const ankerl::nanobench::Bench& b, const size_t element_count) {
     auto latency = 0.0;
     for (auto& x : b.results()) {
       latency += x.median(v(x, "elapsed"));
     }
     return latency * std::chrono::nanoseconds(std::chrono::seconds(1)).count() /
-           b.results().size() / denom;
+           b.results().size() / element_count;
   };
 
   auto sorted_branchmisses = branchmisses(sorted_memory_branch_mispredictions);
   auto unsorted_branchmisses =
       branchmisses(unsorted_memory_branch_mispredictions);
-  auto sorted_latency = latency(sorted_memory_branch_mispredictions, 1UL);
-  auto unsorted_latency = latency(unsorted_memory_branch_mispredictions, 1UL);
+  auto sorted_latency = latency_per_element(sorted_memory_branch_mispredictions, 1UL);
+  auto unsorted_latency = latency_per_element(unsorted_memory_branch_mispredictions, 1UL);
   auto penalty = (unsorted_latency - sorted_latency) /
                  (unsorted_branchmisses - sorted_branchmisses);
   auto sorted_latency_cycles =
-      cpucycles(sorted_memory_branch_mispredictions, 1UL);
+      cpucycles_per_element(sorted_memory_branch_mispredictions, 1UL);
   auto unsorted_latency_cycles =
-      cpucycles(unsorted_memory_branch_mispredictions, 1UL);
+      cpucycles_per_element(unsorted_memory_branch_mispredictions, 1UL);
   auto penalty_cycles = (unsorted_latency_cycles - sorted_latency_cycles) /
                         (unsorted_branchmisses - sorted_branchmisses);
 
@@ -350,68 +348,75 @@ int main(int, char* argv[]) {
   static const char* fmt_ns_cyc = "%-30s %10.1f ns %10.1f cycles\n";
   static const char* fmt_ns = "%-30s %10.1f ns\n";
 
+  static const auto elements_in_L1 = L1_cache_size / sizeof(void*);
+  static const auto elements_in_L2 = L2_cache_size / sizeof(void*);
+  static const auto elements_in_L3 = L3_cache_size / sizeof(void*);
+  static const auto elements_in_memory = memory_chunk / sizeof(void*);
+  static const auto file_size_MiB = fs::file_size(p) / MiB;
+  static const auto chars_size_MiB = chars.size() / MiB;
+
   if (std::isnormal(penalty)) {
-    if (L1_cache_size != 0) { 
+    if (L1_cache_size != 0) {
       ::printf(fmt_ns_cyc, S(L1_random_access),
-               latency(L1_random_access, L1_cache_size / sizeof(void*)),
-               cpucycles(L1_random_access, L1_cache_size / sizeof(void*)));
+               latency_per_element(L1_random_access, elements_in_L1),
+               cpucycles_per_element(L1_random_access, elements_in_L1));
     }
     if (L2_cache_size != 0) { 
       ::printf(fmt_ns_cyc, S(L2_random_access),
-               latency(L2_random_access, L2_cache_size / sizeof(void*)),
-               cpucycles(L2_random_access, L2_cache_size / sizeof(void*)));
+               latency_per_element(L2_random_access, elements_in_L2),
+               cpucycles_per_element(L2_random_access, elements_in_L2));
     }
     if (L3_cache_size != 0) { 
       ::printf(fmt_ns_cyc, S(L3_random_access),
-               latency(L3_random_access, L3_cache_size / sizeof(void*)),
-               cpucycles(L3_random_access, L3_cache_size / sizeof(void*)));
+               latency_per_element(L3_random_access, elements_in_L3),
+               cpucycles_per_element(L3_random_access, elements_in_L3));
     }
     ::printf(fmt_ns_cyc, S(memory_random_access),
-             latency(memory_random_access, memory_chunk / sizeof(void*)),
-             cpucycles(memory_random_access, memory_chunk / sizeof(void*)));
+             latency_per_element(memory_random_access, elements_in_memory),
+             cpucycles_per_element(memory_random_access, elements_in_memory));
     ::printf(fmt_ns_cyc, S(branch_miss_penalty), penalty, penalty_cycles);
-    ::printf(fmt_ns_cyc, S(mutex_access), latency(mutex_access, 1UL),
-             cpucycles(mutex_access, 1UL));
+    ::printf(fmt_ns_cyc, S(mutex_access), latency_per_element(mutex_access, 1UL),
+             cpucycles_per_element(mutex_access, 1UL));
     ::printf(fmt_ns_cyc, S(memory_copy_1MiB),
-             latency(memory_copy_1MiB, chars.size() / MiB),
-             cpucycles(memory_copy_1MiB, chars.size() / MiB));
+             latency_per_element(memory_copy_1MiB, chars_size_MiB),
+             cpucycles_per_element(memory_copy_1MiB, chars_size_MiB));
     if (si.available > memory_chunk) {
       ::printf(fmt_ns_cyc, S(fseek_from_disk),
-               latency(fseek_from_disk, fs::file_size(p) / MiB),
-               cpucycles(fseek_from_disk, fs::file_size(p) / MiB));
+               latency_per_element(fseek_from_disk, file_size_MiB),
+               cpucycles_per_element(fseek_from_disk, file_size_MiB));
       ::printf(fmt_ns_cyc, S(fread_1MiB_from_disk),
-               latency(fread_1MiB_from_disk, fs::file_size(p) / MiB),
-               cpucycles(fread_1MiB_from_disk, fs::file_size(p) / MiB));
+               latency_per_element(fread_1MiB_from_disk, file_size_MiB),
+               cpucycles_per_element(fread_1MiB_from_disk, file_size_MiB));
       ::printf(fmt_ns_cyc, S(fwrite_1MiB_to_disk),
-               latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB),
-               cpucycles(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
+               latency_per_element(fwrite_1MiB_to_disk, file_size_MiB),
+               cpucycles_per_element(fwrite_1MiB_to_disk, file_size_MiB));
     }
   } else {
     if (L1_cache_size != 0) { 
       ::printf(fmt_ns, S(L1_random_access),
-               latency(L1_random_access, L1_cache_size / sizeof(void*)));
+               latency_per_element(L1_random_access, elements_in_L1));
     }
     if (L2_cache_size != 0) { 
       ::printf(fmt_ns, S(L2_random_access),
-               latency(L2_random_access, L2_cache_size / sizeof(void*)));
+               latency_per_element(L2_random_access, elements_in_L2));
     }
     if (L3_cache_size != 0) { 
       ::printf(fmt_ns, S(L3_random_access),
-               latency(L3_random_access, L3_cache_size / sizeof(void*)));
+               latency_per_element(L3_random_access, elements_in_L3));
     }
     ::printf(fmt_ns, S(memory_random_access),
-             latency(memory_random_access, memory_chunk / sizeof(void*)));
+             latency_per_element(memory_random_access, elements_in_memory));
     // skip printing branch_miss_penalty
-    ::printf(fmt_ns, S(mutex_access), latency(mutex_access, 1UL));
+    ::printf(fmt_ns, S(mutex_access), latency_per_element(mutex_access, 1UL));
     ::printf(fmt_ns, S(memory_copy_1MiB),
-             latency(memory_copy_1MiB, chars.size() / MiB));
+             latency_per_element(memory_copy_1MiB, chars_size_MiB));
     if (si.available > memory_chunk) {
       ::printf(fmt_ns, S(fseek_from_disk),
-              latency(fseek_from_disk, fs::file_size(p) / MiB));
+              latency_per_element(fseek_from_disk, file_size_MiB));
       ::printf(fmt_ns, S(fread_1MiB_from_disk),
-               latency(fread_1MiB_from_disk, fs::file_size(p) / MiB));
+               latency_per_element(fread_1MiB_from_disk, file_size_MiB));
       ::printf(fmt_ns, S(fwrite_1MiB_to_disk),
-               latency(fwrite_1MiB_to_disk, fs::file_size(p) / MiB));
+               latency_per_element(fwrite_1MiB_to_disk, file_size_MiB));
     }
   }
   return EXIT_SUCCESS;
