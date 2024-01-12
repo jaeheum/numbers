@@ -53,8 +53,8 @@ OTHER DEALINGS IN THE SOFTWARE.
    SOFTWARE.
 */
 #include "argh.h"
+#define ANKERL_NANOBENCH_IMPLEMENT
 #include "nanobench.h"
-
 #include <sys/types.h>
 #include <unistd.h>
 

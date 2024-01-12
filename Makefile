@@ -35,7 +35,7 @@ run: install
 	$(PREFIX)/bin/numbers
 uninstall:
 	$(RM) $(PREFIX)/bin/$(PROJECT)
-$(PROJECT): nanobench.o numbers.o
+$(PROJECT): numbers.o
 	$(CXX) $(LDFLAGS) -o $(BUILD_DIR)/$(PROJECT) $(BUILD_DIR)/*.o $(LDLIBS)
 prep:
 	@if [ ! -d $(PWD)/$(BUILD_DIR) ]; then mkdir -p $(PWD)/$(BUILD_DIR); fi;
