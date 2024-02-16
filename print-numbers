@@ -30,7 +30,7 @@ if [ "${missing}" -gt 0 ]; then
   ex 1
 fi
 # XXX check if numbers is installed by make install in ~/.local/bin or /u/l/b.
-numbers="${PWD}/build/numbers"
+numbers="${PWD}/numbers"
 p2 "${bold}enter 'q' to quit; enter 'h' to print help/quit;"
 p2 " enter any key to run numbers:${offbold} "
 read -r x
